@@ -66,7 +66,7 @@ def main(args):
     else:
         st_path = f'{spot_path}/simulated_xenium_spot.h5ad'
 
-
+    sc_ref_path = None
     if real_sc_ref == 1:
         print("Using real sc data")
         sc_ref_path = f"{input_dir}/real_sc_ref.h5ad"
@@ -77,7 +77,6 @@ def main(args):
     else:
         sc_path = f"{input_dir}/simulated_xenium.h5ad"
     
-    sc_ref_path = None
     morphology_path = f"{input_dir}/select_cell_features.csv"
     morphology_path = f"{input_dir}/morphology_features.csv"
     morphology_path = None
@@ -100,7 +99,6 @@ def main(args):
     
 
     SVC_obs = get_sc_obs(adata_st.obs.index, adata_st.uns['all_cells_in_spot'])
-
     SVC_obs = get_true_cell_type(SVC_obs, adata_sc)
     print(SVC_obs)
 

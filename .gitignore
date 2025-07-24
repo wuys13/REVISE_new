@@ -2,4 +2,4 @@ data/
 results/
 __pycache__/
 revise/__pycache__
-0_test.ipynb
+*.ipynb
