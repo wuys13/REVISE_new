@@ -1,5 +1,7 @@
 data/
+plot/
 results/
 __pycache__/
 revise/__pycache__
+imputation/__pycache__
 *.ipynb

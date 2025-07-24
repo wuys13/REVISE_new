@@ -150,7 +150,7 @@ def main(args):
         cell_contributions = pd.read_csv(cell_contributions_file, index_col=0)
     else:
         from revise.svc import tacco_get
-        cell_contributions = tacco_get(adata_st_marker, adata_sc_marker)
+        cell_contributions = tacco_get(adata_st, adata_sc)
 
     print(cell_contributions.values.max(axis=1))
     

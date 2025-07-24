@@ -149,9 +149,9 @@ def main(args):
     if os.path.exists(cell_contributions_file) and not_run_again:
         cell_contributions = pd.read_csv(cell_contributions_file, index_col=0)
     else:
-        # adata_st_marker = adata_st.copy()
-        # adata_sc_marker = adata_sc_ref.copy()
-        # sc_ref = sc_ref_all.copy()
+        adata_st_marker = adata_st.copy()
+        adata_sc_marker = adata_sc_ref.copy()
+        sc_ref = sc_ref_all.copy()
         cell_contributions = get_cell_contributions(adata_st_marker, adata_sc_marker, sc_ref, key_type, device=device,
                                                 cells_on_spot = SVC_obs, morphology_features = morphology_features, feature_list=None, lambda_morph=lambda_morph,
                                                 n_epoch=n_epoch, adam_params=None, batch_prior=2,
