@@ -1,0 +1,17 @@
+Start REVISE jobs.
+Start patient_id: P2CRC; part part1. Data iteration 0 .....
+spot_size: 1, use_raw_flag: 1, real_sc_ref: 1
+spot_size: 2, use_raw_flag: 1, real_sc_ref: 1
+spot_size: 3, use_raw_flag: 1, real_sc_ref: 1
+spot_size: 4, use_raw_flag: 1, real_sc_ref: 1
+Start patient_id: P2CRC; part part2. Data iteration 0 .....
+spot_size: 1, use_raw_flag: 1, real_sc_ref: 1
+spot_size: 2, use_raw_flag: 1, real_sc_ref: 1
+spot_size: 3, use_raw_flag: 1, real_sc_ref: 1
+spot_size: 4, use_raw_flag: 1, real_sc_ref: 1
+Start patient_id: P2CRC; part part3. Data iteration 0 .....
+spot_size: 1, use_raw_flag: 1, real_sc_ref: 1
+spot_size: 2, use_raw_flag: 1, real_sc_ref: 1
+spot_size: 3, use_raw_flag: 1, real_sc_ref: 1
+spot_size: 4, use_raw_flag: 1, real_sc_ref: 1
+Finished REVISE jobs. Check the logs in the records directory.

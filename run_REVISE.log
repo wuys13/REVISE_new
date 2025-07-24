@@ -1,0 +1,86 @@
+Start REVISE jobs.
+Start patient_id: P2CRC; part part1. Data iteration 0 .....
+spot_size: 20, use_raw_flag: 1, real_sc_ref: 0
+spot_size: 30, use_raw_flag: 1, real_sc_ref: 0
+spot_size: 40, use_raw_flag: 1, real_sc_ref: 0
+spot_size: 50, use_raw_flag: 1, real_sc_ref: 0
+spot_size: 20, use_raw_flag: 1, real_sc_ref: 1
+spot_size: 30, use_raw_flag: 1, real_sc_ref: 1
+spot_size: 40, use_raw_flag: 1, real_sc_ref: 1
+spot_size: 50, use_raw_flag: 1, real_sc_ref: 1
+Start patient_id: P2CRC; part part1. Data iteration 2 .....
+spot_size: 20, use_raw_flag: 1, real_sc_ref: 0
+spot_size: 30, use_raw_flag: 1, real_sc_ref: 0
+spot_size: 40, use_raw_flag: 1, real_sc_ref: 0
+spot_size: 50, use_raw_flag: 1, real_sc_ref: 0
+spot_size: 20, use_raw_flag: 1, real_sc_ref: 1
+spot_size: 30, use_raw_flag: 1, real_sc_ref: 1
+spot_size: 40, use_raw_flag: 1, real_sc_ref: 1
+spot_size: 50, use_raw_flag: 1, real_sc_ref: 1
+Start patient_id: P2CRC; part part2. Data iteration 0 .....
+spot_size: 20, use_raw_flag: 1, real_sc_ref: 0
+spot_size: 30, use_raw_flag: 1, real_sc_ref: 0
+spot_size: 40, use_raw_flag: 1, real_sc_ref: 0
+spot_size: 50, use_raw_flag: 1, real_sc_ref: 0
+spot_size: 20, use_raw_flag: 1, real_sc_ref: 1
+spot_size: 30, use_raw_flag: 1, real_sc_ref: 1
+spot_size: 40, use_raw_flag: 1, real_sc_ref: 1
+spot_size: 50, use_raw_flag: 1, real_sc_ref: 1
+Start patient_id: P2CRC; part part2. Data iteration 2 .....
+spot_size: 20, use_raw_flag: 1, real_sc_ref: 0
+spot_size: 30, use_raw_flag: 1, real_sc_ref: 0
+spot_size: 40, use_raw_flag: 1, real_sc_ref: 0
+spot_size: 50, use_raw_flag: 1, real_sc_ref: 0
+spot_size: 20, use_raw_flag: 1, real_sc_ref: 1
+spot_size: 30, use_raw_flag: 1, real_sc_ref: 1
+spot_size: 40, use_raw_flag: 1, real_sc_ref: 1
+spot_size: 50, use_raw_flag: 1, real_sc_ref: 1
+Start patient_id: P2CRC; part part3. Data iteration 0 .....
+spot_size: 20, use_raw_flag: 1, real_sc_ref: 0
+spot_size: 30, use_raw_flag: 1, real_sc_ref: 0
+spot_size: 40, use_raw_flag: 1, real_sc_ref: 0
+spot_size: 50, use_raw_flag: 1, real_sc_ref: 0
+spot_size: 20, use_raw_flag: 1, real_sc_ref: 1
+spot_size: 30, use_raw_flag: 1, real_sc_ref: 1
+spot_size: 40, use_raw_flag: 1, real_sc_ref: 1
+spot_size: 50, use_raw_flag: 1, real_sc_ref: 1
+Start patient_id: P2CRC; part part3. Data iteration 2 .....
+spot_size: 20, use_raw_flag: 1, real_sc_ref: 0
+spot_size: 30, use_raw_flag: 1, real_sc_ref: 0
+spot_size: 40, use_raw_flag: 1, real_sc_ref: 0
+spot_size: 50, use_raw_flag: 1, real_sc_ref: 0
+spot_size: 20, use_raw_flag: 1, real_sc_ref: 1
+spot_size: 30, use_raw_flag: 1, real_sc_ref: 1
+spot_size: 40, use_raw_flag: 1, real_sc_ref: 1
+spot_size: 50, use_raw_flag: 1, real_sc_ref: 1
+Start patient_id: P2CRC; part part1. Data iteration 0 .....
+spot_size: 20, use_raw_flag: 0, real_sc_ref: 0
+spot_size: 30, use_raw_flag: 0, real_sc_ref: 0
+spot_size: 40, use_raw_flag: 0, real_sc_ref: 0
+spot_size: 50, use_raw_flag: 0, real_sc_ref: 0
+Start patient_id: P2CRC; part part1. Data iteration 2 .....
+spot_size: 20, use_raw_flag: 0, real_sc_ref: 0
+spot_size: 30, use_raw_flag: 0, real_sc_ref: 0
+spot_size: 40, use_raw_flag: 0, real_sc_ref: 0
+spot_size: 50, use_raw_flag: 0, real_sc_ref: 0
+Start patient_id: P2CRC; part part2. Data iteration 0 .....
+spot_size: 20, use_raw_flag: 0, real_sc_ref: 0
+spot_size: 30, use_raw_flag: 0, real_sc_ref: 0
+spot_size: 40, use_raw_flag: 0, real_sc_ref: 0
+spot_size: 50, use_raw_flag: 0, real_sc_ref: 0
+Start patient_id: P2CRC; part part2. Data iteration 2 .....
+spot_size: 20, use_raw_flag: 0, real_sc_ref: 0
+spot_size: 30, use_raw_flag: 0, real_sc_ref: 0
+spot_size: 40, use_raw_flag: 0, real_sc_ref: 0
+spot_size: 50, use_raw_flag: 0, real_sc_ref: 0
+Start patient_id: P2CRC; part part3. Data iteration 0 .....
+spot_size: 20, use_raw_flag: 0, real_sc_ref: 0
+spot_size: 30, use_raw_flag: 0, real_sc_ref: 0
+spot_size: 40, use_raw_flag: 0, real_sc_ref: 0
+spot_size: 50, use_raw_flag: 0, real_sc_ref: 0
+Start patient_id: P2CRC; part part3. Data iteration 2 .....
+spot_size: 20, use_raw_flag: 0, real_sc_ref: 0
+spot_size: 30, use_raw_flag: 0, real_sc_ref: 0
+spot_size: 40, use_raw_flag: 0, real_sc_ref: 0
+spot_size: 50, use_raw_flag: 0, real_sc_ref: 0
+Finished REVISE jobs. Check the logs in the records directory.
