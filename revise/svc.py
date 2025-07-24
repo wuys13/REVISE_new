@@ -1773,3 +1773,9 @@ def two_step_REVISE(X, adata_sc, sc_ref, type_list, key_type,
     return cell_contributions_pure, sc_ref_pure, cell_contributions_first
 
 
+
+import tacco as tc
+def tacco_get(adata_st, adata_sc):
+    adata_st.X = np.around(adata_st.X)
+    a = tc.tl.annotate(adata_st, adata_sc, 'Level1')
+    return a 
