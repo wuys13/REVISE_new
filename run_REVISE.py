@@ -21,12 +21,11 @@ def get_args():
     parser.add_argument("--spot_size", type=int, default=200, help="spot size")
     parser.add_argument("--patient_id", type=str, default="P2CRC", help="patient_id")
 
-    parser.add_argument("--use_raw_flag", type=int, default=1, help="use raw xenium")
-    parser.add_argument("--real_sc_ref", type=int, default=1, help="use real sc data")
     parser.add_argument("--cell_completeness", type=int, default=1, help="cell completeness")
 
     parser.add_argument("--lambda_morph", type=float, default=0.0, help="lambda for morphology")
-    
+    parser.add_argument("--batch_num", type=int, default=2, help="use batch")
+
     parser.add_argument("--n_epoch", type=int, default=4000, help="number of epoch")
     parser.add_argument("--celltype_col", type=str, default="Level1", help="cell type column")
     parser.add_argument("--part", type=str, default="part1", help="part")
@@ -42,9 +41,8 @@ def main(args):
     task = args.task
     spot_size = args.spot_size
     patient_id = args.patient_id
-    
-    use_raw_flag = args.use_raw_flag
-    real_sc_ref = args.real_sc_ref
+    batch_num = args.batch_num
+   
     n_epoch = args.n_epoch
     lambda_morph = args.lambda_morph
 
@@ -61,36 +59,44 @@ def main(args):
     input_dir = f"data/{task}/{patient_id}/cut_{part}"
 
     spot_path = os.path.join(input_dir, f"spot_{spot_size}")
-    if use_raw_flag == 1:
-        st_path = f"{spot_path}/xenium_spot.h5ad"
-    else:
-        st_path = f'{spot_path}/simulated_xenium_spot.h5ad'
-
-    sc_ref_path = None
-    if real_sc_ref == 1:
-        print("Using real sc data")
-        sc_ref_path = f"{input_dir}/real_sc_ref.h5ad"
-        use_raw_flag = 1 # 必须用真实的Xenium数据
-
-    if use_raw_flag == 1:
-        sc_path = f"{input_dir}/selected_xenium.h5ad"
-    else:
+    if batch_num == 0: # simulation
+        print("simulation")
         sc_path = f"{input_dir}/simulated_xenium.h5ad"
-    
+        sc_ref_path = f"{input_dir}/simulated_xenium.h5ad"
+        st_path = f"{spot_path}/simulated_xenium_spot.h5ad"
+    elif batch_num == 1: # real data, same ref
+        print("real data, same ref")
+        sc_path = f"{input_dir}/selected_xenium.h5ad"
+        sc_ref_path = f"{input_dir}/selected_xenium.h5ad"
+        st_path = f"{spot_path}/selected_xenium_spot.h5ad"
+    elif batch_num == 2: # real data, pair ref
+        print("real data, pair ref")
+        sc_path = f"{input_dir}/selected_xenium.h5ad"
+        sc_ref_path = f"{input_dir}/real_sc_ref.h5ad"
+        st_path = f"{spot_path}/selected_xenium_spot.h5ad"
+    elif batch_num == 3: # real data, other patient ref
+        print("real data, pair patient with extra cell types")
+        sc_path = f"{input_dir}/selected_xenium.h5ad"
+        sc_ref_path = f"{input_dir}/real_sc_ref_extra.h5ad"
+        st_path = f"{spot_path}/selected_xenium_spot.h5ad"
+    elif batch_num == 4: # real data, other patient ref
+        print("real data, other patient ref")
+        sc_path = f"{input_dir}/selected_xenium.h5ad"
+        sc_ref_path = f"{input_dir}/real_sc_ref_others.h5ad"
+        st_path = f"{spot_path}/selected_xenium_spot.h5ad"
+
     morphology_path = f"{input_dir}/select_cell_features.csv"
     morphology_path = f"{input_dir}/morphology_features.csv"
     morphology_path = None
 
-    result_dir=f"{result_dir}/{task}/{patient_id}/{part}/{spot_size}_{use_raw_flag}_{real_sc_ref}"
+    result_dir=f"{result_dir}/{task}/{patient_id}/{part}/{spot_size}_{batch_num}"
     os.makedirs(result_dir, exist_ok=True)
 
 
     adata_sc = sc.read_h5ad(sc_path)
     adata_st = sc.read_h5ad(st_path)
-    if sc_ref_path is not None:
-        adata_sc_ref = sc.read_h5ad(sc_ref_path)
-    else:
-        adata_sc_ref = adata_sc.copy() # 用它本身
+    adata_sc_ref = sc.read_h5ad(sc_ref_path)
+    
 
     if morphology_path is not None:
         morphology_features = pd.read_csv(morphology_path, index_col=0)
