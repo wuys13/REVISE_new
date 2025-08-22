@@ -7,7 +7,8 @@ import scanpy as sc
 import warnings
 warnings.filterwarnings("ignore")
 
-from revise.svc import get_cell_contributions, SVC_recon, sc_SVC_recon, optimize_cell_contributions, assign_cell_types, assign_cell_types_easy, get_spot_cell_distribution
+from revise.svc import get_cell_contributions, SVC_recon, sc_SVC_recon, optimize_cell_contributions, get_spot_cell_distribution
+from revise.assign_cell import assign_cell_types, assign_cell_types_easy
 from revise.sc_ref import construct_sc_ref, marker_selection, preprocess, cut_off_low_gene
 from revise.sc_meta import get_sc_obs, get_true_cell_type, get_sc_id
 from revise.metrics import compute_metric
@@ -21,9 +22,6 @@ def get_args():
     parser.add_argument("--spot_size", type=int, default=200, help="spot size")
     parser.add_argument("--patient_id", type=str, default="P2CRC", help="patient_id")
 
-    parser.add_argument("--cell_completeness", type=int, default=1, help="cell completeness")
-
-    parser.add_argument("--lambda_morph", type=float, default=0.0, help="lambda for morphology")
     parser.add_argument("--batch_num", type=int, default=2, help="use batch")
 
     parser.add_argument("--n_epoch", type=int, default=4000, help="number of epoch")
@@ -44,17 +42,10 @@ def main(args):
     batch_num = args.batch_num
    
     n_epoch = args.n_epoch
-    lambda_morph = args.lambda_morph
 
     celltype_col = args.celltype_col
     part = args.part
     result_dir = args.result_dir
-
-    if args.cell_completeness == 1:
-        cell_completeness = True
-    else:
-        cell_completeness = False
-
     
     input_dir = f"data/{task}/{patient_id}/cut_{part}"
 
@@ -68,52 +59,34 @@ def main(args):
         print("real data, same ref")
         sc_path = f"{input_dir}/selected_xenium.h5ad"
         sc_ref_path = f"{input_dir}/selected_xenium.h5ad"
-        st_path = f"{spot_path}/selected_xenium_spot.h5ad"
+        st_path = f"{spot_path}/xenium_spot.h5ad"
     elif batch_num == 2: # real data, pair ref
-        print("real data, pair ref")
+        print("real data, pair ref with all sc")
         sc_path = f"{input_dir}/selected_xenium.h5ad"
-        sc_ref_path = f"{input_dir}/real_sc_ref.h5ad"
-        st_path = f"{spot_path}/selected_xenium_spot.h5ad"
+        sc_ref_path = f"{input_dir}/real_sc_ref_all.h5ad"
+        st_path = f"{spot_path}/xenium_spot.h5ad"
     elif batch_num == 3: # real data, other patient ref
-        print("real data, pair patient with extra cell types")
+        print("real data, pair patient with part cell types")
         sc_path = f"{input_dir}/selected_xenium.h5ad"
-        sc_ref_path = f"{input_dir}/real_sc_ref_extra.h5ad"
-        st_path = f"{spot_path}/selected_xenium_spot.h5ad"
+        sc_ref_path = f"{input_dir}/real_sc_ref_part.h5ad"
+        st_path = f"{spot_path}/xenium_spot.h5ad"
     elif batch_num == 4: # real data, other patient ref
         print("real data, other patient ref")
         sc_path = f"{input_dir}/selected_xenium.h5ad"
         sc_ref_path = f"{input_dir}/real_sc_ref_others.h5ad"
-        st_path = f"{spot_path}/selected_xenium_spot.h5ad"
+        st_path = f"{spot_path}/xenium_spot.h5ad"
 
-    morphology_path = f"{input_dir}/select_cell_features.csv"
-    morphology_path = f"{input_dir}/morphology_features.csv"
-    morphology_path = None
 
     result_dir=f"{result_dir}/{task}/{patient_id}/{part}/{spot_size}_{batch_num}"
     os.makedirs(result_dir, exist_ok=True)
 
-
     adata_sc = sc.read_h5ad(sc_path)
     adata_st = sc.read_h5ad(st_path)
     adata_sc_ref = sc.read_h5ad(sc_ref_path)
-    
-
-    if morphology_path is not None:
-        morphology_features = pd.read_csv(morphology_path, index_col=0)
-    else:
-        morphology_features = None
-    
 
     SVC_obs = get_sc_obs(adata_st.obs.index, adata_st.uns['all_cells_in_spot'])
     SVC_obs = get_true_cell_type(SVC_obs, adata_sc)
     print(SVC_obs)
-
-    if cell_completeness:
-        complete_mask = None
-    else:
-        print("Cell is not complete, using cell_completeness mask")
-        # todo: which cell is not complete?
-        # complete_mask = np.zeros((adata_st.shape[0], adata_sc.shape[0]), dtype=np.float32)
 
     key_type = "clusters"
     if key_type not in adata_sc_ref.obs.columns:
@@ -151,7 +124,7 @@ def main(args):
     # 得到 Spot-level 的 cell_contributions，以及 cell-level 的 PM_on_cell based on morphology
     print("Calculating cell contributions and PM_on_cell...")
     cell_contributions_file = f"{result_dir}/cell_contributions_{celltype_col}.csv"
-    not_run_again = False
+    not_run_again = True
     if os.path.exists(cell_contributions_file) and not_run_again:
         cell_contributions = pd.read_csv(cell_contributions_file, index_col=0)
     else:
@@ -159,7 +132,7 @@ def main(args):
         adata_sc_marker = adata_sc_ref.copy()
         sc_ref = sc_ref_all.copy()
         cell_contributions = get_cell_contributions(adata_st_marker, adata_sc_marker, sc_ref, key_type, device=device,
-                                                cells_on_spot = SVC_obs, morphology_features = morphology_features, feature_list=None, lambda_morph=lambda_morph,
+                                                cells_on_spot = SVC_obs, 
                                                 n_epoch=n_epoch, adam_params=None, batch_prior=2,
                                                 plot_file_name = f"{result_dir}/1.png")
         cell_contributions.to_csv(cell_contributions_file)
@@ -167,12 +140,14 @@ def main(args):
     print(cell_contributions.values.max(axis=1))
     
 
-    PM_on_cell_file = f"{input_dir}/PM_on_cell.csv"
+    PM_on_cell_file = f"{input_dir}/../PM_on_cell.csv"
     if os.path.exists(PM_on_cell_file):
         PM_on_cell = pd.read_csv(PM_on_cell_file, index_col=0)
     else:
-        PM_on_cell = get_similarity_df(adata_sc)
-        PM_on_cell.to_csv(PM_on_cell_file)
+        PM_on_cell = None
+    # else:
+    #     PM_on_cell = get_similarity_df(adata_sc)
+    #     PM_on_cell.to_csv(PM_on_cell_file)
 
     SVC_obs = assign_cell_types_easy(SVC_obs, cell_contributions, mode="max")
     SVC_obs['match'] = SVC_obs['cell_type'] == SVC_obs['true_cell_type']
@@ -181,39 +156,34 @@ def main(args):
     SVC_obs.to_csv(f"{result_dir}/SVC_obs.csv")
 
 
-    # # 根据 in-spot cell count 来优化 cell_contributions
-    # print("Optimizing cell contributions...")
-    # cell_contributions = optimize_cell_contributions(cell_contributions = cell_contributions, 
-    #                                                  SVC_obs = SVC_obs, cell_completeness = cell_completeness)
-    # print(cell_contributions.values.max(axis=1))
-
-    # SVC_obs = assign_cell_types_easy(SVC_obs, cell_contributions, mode="max")
-    # SVC_obs['match'] = SVC_obs['cell_type'] == SVC_obs['true_cell_type']
-    # print(SVC_obs['match'].value_counts())
-
     spot_cell_distribution = get_spot_cell_distribution(cell_contributions = cell_contributions, 
-                                                      SVC_obs = SVC_obs, cell_completeness = cell_completeness)
+                                                      SVC_obs = SVC_obs)
 
 
     # 结合 morphology 得到的 PM_on_cell 和 cell_contributions 来得到 cell_type_dict
-    if spot_size > 30:
-        print("Assigning cell types...")
+    print("Assigning cell types...")
+    if PM_on_cell is not None:
         SVC_obs = assign_cell_types(SVC_obs = SVC_obs, PM_on_cell = PM_on_cell, 
-                                        spot_cell_distribution = spot_cell_distribution
-                                        )
-        print(SVC_obs)
-        SVC_obs['match'] = SVC_obs['cell_type'] == SVC_obs['true_cell_type']
-        SVC_obs.to_csv(f"{result_dir}/SVC_obs_assign.csv")
-
-        enhance_match = sum(SVC_obs['match'] == True) / len(SVC_obs)
-        print(SVC_obs['match'].value_counts(), enhance_match)
-
-        match_matrix = pd.DataFrame({
-            "max_match": [max_match],
-            "enhance_match": [enhance_match],
-        })
-        match_matrix.to_csv(f"{result_dir}/match_matrix.csv", index=False)
+                                    spot_cell_distribution = spot_cell_distribution
+                                    )
+    else:
+        SVC_obs = assign_cell_types_easy(SVC_obs = SVC_obs, cell_contributions = cell_contributions, mode="random")
     
+    print(SVC_obs)
+    SVC_obs['match'] = SVC_obs['cell_type'] == SVC_obs['true_cell_type']
+    SVC_obs.to_csv(f"{result_dir}/SVC_obs_assign.csv")
+
+    enhance_match = sum(SVC_obs['match'] == True) / len(SVC_obs)
+    print(SVC_obs['match'].value_counts(), enhance_match)
+
+    match_matrix = pd.DataFrame({
+        "max_match": [max_match],
+        "enhance_match": [enhance_match],
+    })
+    match_matrix.to_csv(f"{result_dir}/match_matrix.csv", index=False)
+    
+
+
 
     adata_sc_orig = sc.read_h5ad(sc_path)
     adata_st_orig = sc.read_h5ad(st_path)
@@ -232,7 +202,7 @@ def main(args):
     
     SVC_adata = SVC_recon(adata_st = adata_st_orig, sc_ref = sc_ref_all,
                            cell_contributions = cell_contributions, SVC_obs = SVC_obs,
-                           complete_mask = complete_mask)
+                           )
     print(SVC_adata)
     SVC_adata.write(f"{result_dir}/SVC_adata.h5ad")
     # print(SVC_adata.X[:5, :5])

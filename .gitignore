@@ -5,3 +5,6 @@ __pycache__/
 revise/__pycache__
 imputation/__pycache__
 *.ipynb
+other_code/
+0_records
+raw_data/
