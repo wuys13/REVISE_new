@@ -1,5 +1,5 @@
 import scanpy as sc
-
+from revise.tacco import tacco_anno
 
 def get_args():
     import argparse
@@ -8,6 +8,9 @@ def get_args():
     parser.add_argument("--task", type=str, default="application", help="task")
     parser.add_argument("--patient_id", type=str, default="P2CRC", help="patient_id")
     parser.add_argument("--data_type", type=str, default="Xenium", help="ST technology")
+    parser.add_argument("--celltype_col", type=str, default="Level1", help="cell type column")
+    
+    parser.add_argument("--iter_num", type=int, default=2, help="Laplace iter num")
     
     parser.add_argument("--result_dir", type=str, default="results", help="result directory")
     args = parser.parse_args()
@@ -17,6 +20,9 @@ def main(args):
     input_dir = args.input_dir
     patient_id = args.patient_id
     data_type = args.data_type
+    iter_num = args.iter_num
+    celltype_col = args.celltype_col
+
     result_dir = args.result_dir
 
     ## load data ----------
@@ -45,7 +51,8 @@ def main(args):
 
 
     ## Step 1 --------
-    adata_sp = annotate(adata_sp, adata_sc, "Level1")
+    annotate = tacco_anno # replace to our own OT methods latter
+    adata_sp = annotate(adata_sp, adata_sc, celltype_col)
 
 
     ## Step 2 --------
@@ -56,7 +63,7 @@ def main(args):
     elif data_type == "Xenium":
         select_mode = "mode_3"
     
-    adata_sp = REVISE_reconstruct(adata_sp, adata_sc, "Level1", select_mode = select_mode)
+    adata_sp = REVISE_reconstruct(adata_sp, adata_sc, celltype_col, select_mode = select_mode, iter_num = iter_num)
     adata_sp.write(f"{result_dir}/{patient_id}_{data_type}_REVISE.h5ad")
 
 
