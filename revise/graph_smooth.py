@@ -1,6 +1,7 @@
 import scanpy as sc
 import numpy as np
 from sklearn.neighbors import NearestNeighbors
+from sklearn.neighbors import KDTree
 from scipy import sparse
 
 
@@ -31,7 +32,9 @@ def get_spatial_graph(
     bandwidth=None,           # 高斯核带宽；默认用每个点第k邻居距离的中位数
     symmetric="mean",         # 'max' | 'mean' | 'sum'  对称化策略
     row_normalize=True,       # 是否把每行归一化为和为1（随机游走归一化）
-    save_key_prefix="spatial" # obsp 保存的前缀
+    save_key_prefix="spatial", # obsp 保存的前缀
+    use_cell_size=False,      # 是否考虑细胞大小影响
+    sc_pixel=None,               # 单细胞直径，单位为像素
 ):
     """
 
@@ -43,7 +46,8 @@ def get_spatial_graph(
         symmetric:
         row_normalize:
         save_key_prefix:
-
+        use_cell_size:
+        sc_pixel:
     Returns:
 
     """
@@ -54,6 +58,10 @@ def get_spatial_graph(
     coords = adata.obsm['spatial'].copy()
     n = adata.n_obs
 
+    if use_cell_size and sc_pixel:
+        pass
+        # nbrs = KDTree(n_neighbors=n_neighbors, metric='euclidean').fit(coords)
+        # nbrs.query()
     nbrs = NearestNeighbors(n_neighbors=n_neighbors, metric='euclidean').fit(coords)
     distances, indices = nbrs.kneighbors(coords)  # shape: (n, k)
 

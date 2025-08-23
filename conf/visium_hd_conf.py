@@ -15,6 +15,8 @@ class VisiumHDConf:
     graph_n_neighbors: int = 30
     graph_st_alpha = 0.2
     iter_num = 2
+    single_cell_size = 8
+    pixel_size = 0.27401259157195484
 
     def __post_init__(self):
         self.result_dir = os.path.join(self.result_root_path, f"{self.patient_id}_real")
