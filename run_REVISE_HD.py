@@ -8,9 +8,9 @@ from revise.sp_svc import SpSVC
 def preprocess(adata):
     adata = adata.copy()
     sc.pp.filter_genes(adata, min_cells=30)
-    replace_columns = {k: k.replace("/", "_") for k in adata.obs['Level1'].columns if '/' in k}
+    replace_columns = {k: k.replace("/", "_") for k in adata.obs['Level1'].unique().tolist() if '/' in k}
     adata.obs['Level1'].replace(replace_columns, inplace=True)
-    replace_columns = {k: k.replace("/", "_") for k in adata.obs['Level2'].columns if '/' in k}
+    replace_columns = {k: k.replace("/", "_") for k in adata.obs['Level2'].unique().tolist() if '/' in k}
     adata.obs['Level2'].replace(replace_columns, inplace=True)
     return adata
 
@@ -31,4 +31,8 @@ def main():
     adata_sc = preprocess(adata_st)
     sp_svc = SpSVC(adata_st, adata_sc, config)
     sp_svc.annotate()
+    import pdb; pdb.set_trace()
 
+
+if __name__ == "__main__":
+    main()
