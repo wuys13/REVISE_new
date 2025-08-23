@@ -4,7 +4,7 @@ from imputation.impute import get_common_embedding, get_imputed_adata, get_harmo
 # test_gene_idx=340
 test_gene_idx = None # all train 
 
-part_num = 1
+part_num = 3
 # part_num = 1000
 
 
@@ -14,7 +14,29 @@ patient_id = "P2CRC"
 
 source_path = f"data/{task}/{patient_id}/cut_part{part_num}"
 adata_sp = sc.read(f"{source_path}/selected_xenium.h5ad")
-adata_sc = sc.read(f"{source_path}/real_sc_ref.h5ad")
+
+task = "spot"
+batch_num = 3
+source_path = f"data/{task}/{patient_id}/cut_part{part_num}"
+if batch_num == 1:
+    file_name = "selected_xenium.h5ad"
+elif batch_num == 2:
+    file_name = "real_sc_ref_all.h5ad"
+elif batch_num == 3:
+    file_name = "real_sc_ref_part.h5ad"
+elif batch_num == 4:
+    file_name = "real_sc_ref_others.h5ad"
+
+sc_file = f"{source_path}/{file_name}"
+
+# sc_file = "/home/wys/Sim2Real-ST/REVISE_data_process/raw_data/adata_sc_all_reanno.h5ad"
+# adata_sc = sc.read(sc_file)
+# all_cts = adata_sc.obs["Level1"].unique()
+# adata_sc = adata_sc[adata_sc.obs["Level1"].isin(all_cts)]
+
+
+adata_sc = sc.read(sc_file)
+
 
 overlap_genes = list(adata_sp.var_names.intersection(adata_sc.var_names))
 print(len(overlap_genes))
