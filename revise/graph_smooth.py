@@ -59,9 +59,8 @@ def get_spatial_graph(
     n = adata.n_obs
 
     if use_cell_size and sc_pixel:
-        pass
-        # nbrs = KDTree(n_neighbors=n_neighbors, metric='euclidean').fit(coords)
-        # nbrs.query()
+        kdtree = KDTree(coords)
+        neighbors = kdtree.query_ball_point(coords, sc_pixel)
     nbrs = NearestNeighbors(n_neighbors=n_neighbors, metric='euclidean').fit(coords)
     distances, indices = nbrs.kneighbors(coords)  # shape: (n, k)
 
