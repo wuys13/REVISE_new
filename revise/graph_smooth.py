@@ -54,7 +54,6 @@ def get_spatial_graph(
     coords = adata.obsm['spatial'].copy()
     n = adata.n_obs
 
-    # 拟合KNN并取距离/索引（包含自身距离0；后面会去掉自环）
     nbrs = NearestNeighbors(n_neighbors=n_neighbors, metric='euclidean').fit(coords)
     distances, indices = nbrs.kneighbors(coords)  # shape: (n, k)
 
@@ -63,6 +62,7 @@ def get_spatial_graph(
         if bandwidth is None:
             kth = distances[:, -1]
             bandwidth = np.median(kth[kth > 0]) if np.any(kth > 0) else 1.0
+        print(f"Using Gaussian kernel with bandwidth h = {bandwidth:.4f}")
         # w_ij = exp( - d_ij^2 / (2 * h^2) )
         weights = np.exp(-(distances ** 2) / (2 * (bandwidth ** 2)))
     elif weight_mode == "inverse":
@@ -74,7 +74,7 @@ def get_spatial_graph(
         dk = distances[:, -1][:, None] + 1e-8
         weights = np.maximum(0.0, 1.0 - distances / dk)
     else:
-        raise ValueError("weight_mode 必须是 'gaussian' | 'inverse' | 'linear' 之一")
+        raise ValueError("weight_mode have to be in ('gaussian', 'inverse', 'linear')")
 
     # remove self-loops by setting self-weights to 0
     self_mask = (indices == np.arange(n)[:, None])

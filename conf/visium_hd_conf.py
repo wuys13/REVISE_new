@@ -13,7 +13,7 @@ class VisiumHDConf:
     result_dir: str = field(init=False)
     graph_n_pca: int = 30
     graph_n_neighbors: int = 30
-    graph_st_alpha = 0.5
+    graph_st_alpha = 0.2
     iter_num = 2
 
     def __post_init__(self):
