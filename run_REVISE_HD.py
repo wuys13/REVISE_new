@@ -24,14 +24,15 @@ def parse_args():
 def main():
     args = parse_args()
     config = VisiumHDConf(args.patient_id)
-    adata_st = sc.read_h5ad(config.st_file)
-    adata_sc = sc.read_h5ad(config.sc_file)
+    adata_st = sc.read_h5ad(config.st_file_path)
+    adata_sc = sc.read_h5ad(config.sc_file_path)
     adata_sc = adata_sc[adata_sc.obs['Patient'] == config.patient_id, :]
     print(f"ST data shape: {adata_st.shape}, SC data shape: {adata_sc.shape}")
-    adata_sc = preprocess(adata_st)
+    adata_sc = preprocess(adata_sc)
     sp_svc = SpSVC(adata_st, adata_sc, config)
     sp_svc.annotate()
-    import pdb; pdb.set_trace()
+    sp_svc.reconstruct()
+    sp_svc.write_result()
 
 
 if __name__ == "__main__":

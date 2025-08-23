@@ -16,16 +16,16 @@ def assign_max_level(adata, ct_name, print_flag = False):
 
     result_df = pd.DataFrame({
         'cell_type': max_columns.index,
-        ct_name: max_columns.values,
+        'max_type': max_columns.values,
         'max_score': max_values.values,
     })
     result_df.set_index('cell_type', inplace=True)
 
 
     # Assign result to adata.obs
-    adata.obs[ct_name] = result_df[ct_name]
-    adata.obs[ct_name] = adata.obs[ct_name].astype(object)
-    adata.obs[ct_name].replace({np.nan: 'Unknown'}, inplace=True)
+    adata.obs['max_type'] = result_df['max_type']
+    adata.obs['max_type'] = adata.obs['max_type'].astype(object)
+    adata.obs['max_type'].replace({np.nan: 'Unknown'}, inplace=True)
     adata.obs['max_score'] = result_df['max_score']
 
     return adata
