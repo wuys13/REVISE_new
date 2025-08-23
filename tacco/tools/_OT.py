@@ -60,7 +60,6 @@ def _annotate_OT(
     Implements the functionality of :func:`~annotate_OT` without data
     integrity checks.
     """
-    import pdb; pdb.set_trace()
     cell_prior = helper.prep_cell_priors(adata, reads=True)
     
     type_cell_dist = helper.prep_distance(
@@ -73,7 +72,6 @@ def _annotate_OT(
         test_weight = 1e-6*cell_prior.sum()/(len(type_cell_dist.columns)-len(cell_prior.index)) # keep a low weight to not influence the actual typing (much)
         cell_prior = cell_prior.reindex(index=type_cell_dist.columns,fill_value=test_weight)
 
-    import pdb; pdb.set_trace()
     cell_type = _run_OT(type_cell_dist, annotation_prior, cell_prior=cell_prior, epsilon=epsilon, lamb=lamb)
     
     if decomposition:
