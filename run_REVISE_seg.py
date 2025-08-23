@@ -12,6 +12,8 @@ from revise.sc_ref import construct_sc_ref, marker_selection, preprocess, cut_of
 from revise.sc_meta import get_sc_obs, get_true_cell_type, get_sc_id
 from revise.metrics import compute_metric
 from revise.morphology import get_similarity_df
+from revise.svc import tacco_get
+torch.set_float32_matmul_precision("high")
 
 def get_args():
     import argparse
@@ -88,8 +90,11 @@ def main(args):
     result_dir=f"{result_dir}/{task}/{patient_id}/{part}/{iteration}/{spot_size}_{use_raw_flag}_{real_sc_ref}"
     os.makedirs(result_dir, exist_ok=True)
 
+    st_path = f"/cpfs01/projects-HDD/cfff-c7cd658afc74_HDD/public/wuyushuai/store_data/CRC_processed/{args.patient_id}_HD.h5ad"
+    sc_path = "/cpfs01/projects-HDD/cfff-c7cd658afc74_HDD/public/wuyushuai/store_data/CRC_processed/adata_sc_all_reanno.h5ad"
 
     adata_sc = sc.read_h5ad(sc_path)
+    adata_sc = adata_sc[adata_sc.obs['Patient'] == args.patient_id]
     adata_st = sc.read_h5ad(st_path)
     if sc_ref_path is not None:
         adata_sc_ref = sc.read_h5ad(sc_ref_path)
@@ -100,10 +105,8 @@ def main(args):
         morphology_features = pd.read_csv(morphology_path, index_col=0)
     else:
         morphology_features = None
-    
-    SVC_obs = get_sc_obs(adata_st.obs.index, adata_st.uns['all_cells_in_spot'])
-    SVC_obs = get_true_cell_type(SVC_obs, adata_sc)
-    print(SVC_obs)
+
+
 
     if cell_completeness:
         complete_mask = None
@@ -146,17 +149,53 @@ def main(args):
 
     # 得到 Spot-level 的 cell_contributions，以及 cell-level 的 PM_on_cell based on morphology
     print("Calculating cell contributions...")
-    cell_contributions_file = f"{result_dir}/cell_contributions_{celltype_col}.csv"
     not_run_again = False
     not_run_again = True
+    dec_mode = "tacco" # vi/tacco/destvi/tacco_gft
+    cell_contributions_file = f"{result_dir}/cell_contributions_{celltype_col}_{dec_mode}.csv"
+
     if os.path.exists(cell_contributions_file) and not_run_again:
         cell_contributions = pd.read_csv(cell_contributions_file, index_col=0)
+        print(f"read cell contributions from {cell_contributions_file}")
     else:
-        cell_contributions = get_cell_contributions(adata_st_marker, adata_sc_marker, sc_ref, key_type, device=device,
-                                                cells_on_spot = SVC_obs, morphology_features = morphology_features, feature_list=None, lambda_morph=lambda_morph,
-                                                n_epoch=n_epoch, adam_params=None, batch_prior=2,
-                                                plot_file_name = f"{result_dir}/1.png")
+        if dec_mode == "vi":
+            SVC_obs = get_sc_obs(adata_st.obs.index, adata_st.uns['all_cells_in_spot'])
+            SVC_obs = get_true_cell_type(SVC_obs, adata_sc)
+            print(SVC_obs)
+            cell_contributions = get_cell_contributions(adata_st_marker, adata_sc_marker, sc_ref, key_type, device=device,
+                                                    cells_on_spot = SVC_obs, morphology_features = morphology_features, feature_list=None, lambda_morph=lambda_morph,
+                                                    n_epoch=n_epoch, adam_params=None, batch_prior=2,
+                                                    plot_file_name = f"{result_dir}/1.png")
+        elif dec_mode == "tacco":
+
+            # params = {'method': 'OTGFT', 'multi_center': 10, "S_spagft": 24, "lamada_mtb": 0.8}
+            params = {'method': 'OT'}
+            print(f"input st data shape: {adata_st_marker.shape}, input sc data shape: {adata_sc_marker.shape}")
+            cell_contributions = tacco_get(adata_st, adata_sc, **params)
+        elif dec_mode == "tacco_gft":
+            params = {'method': 'OTGFT', 'multi_center': 10, "S_spagft": 24, "lamada_mtb": 0.8}
+            print(f"input st data shape: {adata_st_marker.shape}, input sc data shape: {adata_sc_marker.shape}")
+            cell_contributions = tacco_get(adata_st, adata_sc, **params)
+        elif dec_mode == "tacco_revise":
+            params = {'method': 'OTREVISE'}
+            cell_contributions = tacco_get(adata_st, adata_sc, **params)
+        elif dec_mode == "destvi":
+            from scvi.model import CondSCVI, DestVI
+            adata_sc = adata_sc.copy()
+
+            CondSCVI.setup_anndata(adata_sc, labels_key="Level1")
+            sc_model = CondSCVI(adata_sc, weight_obs=False)
+            sc_model.train(max_epochs=100)
+            sc.pp.filter_cells(adata_st, min_counts=1)
+            DestVI.setup_anndata(adata_st)
+            st_model = DestVI.from_rna_model(adata_st, sc_model)
+            st_model.train(max_epochs=100)
+            cell_contributions = st_model.get_proportions()
+        else:
+            raise NotImplementedError(f"wrong dec_mode: {dec_mode}")
+
         cell_contributions.to_csv(cell_contributions_file)
+        print(f"save cell contributions to {cell_contributions_file}")
 
     print(cell_contributions.values.max(axis=1))
     
@@ -300,7 +339,7 @@ def main(args):
     minor_CF = True
     if minor_CF:
         from revise.minor_CF import replace_effect_spots
-        adata_st_orig = replace_effect_spots(adata_st_orig, celltype_col="Level1", no_effect_col="no_effect")
+        adata_st_orig = replace_effect_spots(adata_st_orig, celltype_col="Level1", no_effect_col="no_effect", )
 
 
         

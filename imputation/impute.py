@@ -8,8 +8,7 @@ from sklearn.neighbors import NearestNeighbors
 from sklearn.cross_decomposition import CCA
 import scipy.linalg
 from tqdm import tqdm
-import matplotlib.pyplot as plt
-import seaborn as sns
+from scipy import sparse
 
 def preprocess_adata(adata, normalize_flag=False):
     """
@@ -58,7 +57,7 @@ def get_common_embedding(
     project_on: str = "sc",
     normalize_flag: bool = True,
     zscore_flag: bool = True,
-) -> tuple[sc.AnnData, sc.AnnData]:
+):
     """
     Compute shared embedding for spatial & single-cell data.
 
@@ -69,8 +68,8 @@ def get_common_embedding(
     project_on : "sc", "sp", or "both"
     normalize_flag : bool, whether to normalize data before processing
     """
-    if emb not in ["pca", "raw", "nmf"]:
-        raise ValueError("emb must be 'pca', 'raw', or 'nmf'")
+    if emb not in ["pca", "raw", "nmf", "cca"]:
+        raise ValueError("emb must be 'pca', 'cca' ,'raw', or 'nmf'")
     if method not in ["svd", "cca"]:
         raise ValueError("method must be 'svd' or 'cca'")
 
@@ -85,6 +84,7 @@ def get_common_embedding(
     common_genes = np.intersect1d(adata_sp.var_names, adata_sc.var_names)
     sp_data = adata_sp[:, common_genes].X.toarray()
     sc_data = adata_sc[:, common_genes].X.toarray()
+    sc_data_all_genes = adata_sc.X.toarray()
     if zscore_flag:
         sp_data = st.zscore(sp_data, axis=0)
         sc_data = st.zscore(sc_data, axis=0)
@@ -101,11 +101,17 @@ def get_common_embedding(
         max_components = min(max_components, sp_data.shape[1])
 
     # Embedding step
+    print(f"begin to run {emb}")
     if emb == "pca":
         pca_sp = PCA(n_components=max_components)
         pca_sc = PCA(n_components=max_components)
         sp_factors = pca_sp.fit(sp_data).components_
         sc_factors = pca_sc.fit(sc_data).components_
+    if emb == "cca":
+        pca_sp = PCA(n_components=max_components)
+        cca_sc = CCA(n_components=max_components)
+        sp_factors = pca_sp.fit(sp_data).components_
+        sc_factors = cca_sc.fit(sc_data_all_genes, sc_data).y_weights_
     elif emb == "raw":
         sp_factors = sp_data.T
         sc_factors = sc_data.T
@@ -120,11 +126,12 @@ def get_common_embedding(
                         max_iter=200, random_state=0)
         sp_factors = nmf_model.fit(sp_data_shifted).components_
         sc_factors = nmf_model.fit(sc_data_shifted).components_
-        
 
+    print(f"begin to run orth")
     sp_factors = scipy.linalg.orth(sp_factors.T).T
     sc_factors = scipy.linalg.orth(sc_factors.T).T
 
+    print(f"begin to run decomposition {method}")
     # Decomposition step
     if method == "svd":
         # SVD on domain-specific factors (n_components, n_genes)
@@ -160,6 +167,7 @@ def get_common_embedding(
     # Project data: use standardized original data and PVs
     # sp_data, sc_data: (n_cells, n_genes)
     # sc_pv, sp_pv: (effective_n_pv, n_genes)
+    print(f"begin to project on {project_on}")
     if project_on == "sc":
         adata_sp_raw.obsm["X_shared"] = sp_data @ sc_pv.T  # (n_spatial_cells, effective_n_pv)
         adata_sc_raw.obsm["X_shared"] = sc_data @ sc_pv.T  # (n_single_cells, effective_n_pv)
@@ -184,12 +192,13 @@ def get_common_embedding(
     return adata_sp_raw, adata_sc_raw
 
 def get_imputed_adata(
-    adata_sp: sc.AnnData,
-    adata_sc: sc.AnnData,
-    genes_to_predict: list = None,
-    n_neighbors: int = 50,
-    method: str = "NearestNeighbors"
-) -> tuple[sc.AnnData, pd.DataFrame]:
+    adata_sp,
+    adata_sc,
+    genes_to_predict=None,
+    n_neighbors=50,
+    method="NearestNeighbors",
+    ot_mapping=None
+):
     """
     Impute spatial gene expression using sc data.
 
@@ -201,15 +210,121 @@ def get_imputed_adata(
         return _get_impute_NearestNeighbors(adata_sp, adata_sc, genes_to_predict, n_neighbors)
     elif method == "MNN":
         return _get_impute_MNN(adata_sp, adata_sc, genes_to_predict, n_neighbors)
+    elif method == "OT":
+        return _get_impute_OT(adata_sp, adata_sc, ot_mapping, genes_to_predict, n_neighbors)
     else:
         raise ValueError("method must be 'NearestNeighbors' or 'MNN'")
 
+
+def _get_impute_OT(
+        adata_sp,
+        adata_sc,
+        ot_mapping,
+        genes_to_predict=None,
+        n_neighbors=50,
+        mode='mean'
+):
+    if "X_shared" not in adata_sp.obsm or "X_shared" not in adata_sc.obsm:
+        if "X_shared_sc" in adata_sp.obsm and "X_shared_sc" in adata_sc.obsm:
+            adata_sp.obsm["X_shared"] = adata_sp.obsm["X_shared_sc"]
+            adata_sc.obsm["X_shared"] = adata_sc.obsm["X_shared_sc"]
+        else:
+            raise ValueError("Run get_common_embedding first or ensure X_shared is available!")
+
+    if genes_to_predict is None:
+        genes_to_predict = adata_sc.var_names
+    else:
+        genes_to_predict = [g for g in genes_to_predict if g in adata_sc.var_names]
+    print(f"number of genes to predict: {len(genes_to_predict)}")
+
+    if len(genes_to_predict) == 0:
+        raise ValueError("genes_to_predict is empty!")
+
+    sc_view = adata_sc[:, genes_to_predict]
+    if sparse.issparse(sc_view.X):
+        sc_expr = sc_view.X.tocsr().astype(np.float32)
+    else:
+        sc_expr = sparse.csr_matrix(np.asarray(sc_view.X, dtype=np.float32))
+
+    n_spots, n_cells = ot_mapping.shape
+    if n_cells == 0 or n_spots == 0:
+        raise ValueError("ot_mapping 对齐后为空，请检查 spots / cells 名称是否匹配。")
+
+    k = int(min(max(n_neighbors, 1), n_cells))
+    M = ot_mapping.to_numpy(dtype=np.float32, copy=False)
+    np.nan_to_num(M, copy=False, nan=0.0, posinf=0.0, neginf=0.0)
+    M[M < 0] = 0.0
+
+    imputed = np.zeros((n_spots, len(genes_to_predict)), dtype=np.float32)
+    used_count = np.zeros(n_cells, dtype=int)
+    used_weight_sum = np.zeros(n_cells, dtype=np.float32)
+
+    for i in tqdm(range(n_spots)):
+        row = M[i]
+        topk = np.argpartition(row, -k)[-k:]
+        topk = topk[row[topk] > 0]
+
+        if topk.size == 0:
+            fallback_idx = np.argmax(row)
+            topk = np.array([fallback_idx])
+            weights = np.array([1.0])
+            imputed[i] = sc_expr[topk].mean(axis=0)
+            used_count[fallback_idx] += 1
+            used_weight_sum[fallback_idx] += 1.0
+            continue
+
+        expr_subset = sc_expr[topk]
+
+        if mode == 'mean':
+            imputed[i] = expr_subset.mean(axis=0)
+            weights = np.ones(topk.size)
+        elif mode == 'weighted':
+            weights = row[topk]
+            weights = weights / weights.sum()
+            imputed[i] = weights @ expr_subset
+        elif mode == 'knn_weighted':
+            weights = row[topk]
+            w = 1 - weights / np.sum(weights)
+            denom = max(1, len(w) - 1)  # avoid div by zero
+            weights = w / denom
+            imputed[i] = weights @ expr_subset
+        else:
+            raise ValueError("mode must be 'weighted', 'mean', or 'knn_weighted'")
+
+        for idx, w in zip(topk, weights):
+            used_count[idx] += 1
+            used_weight_sum[idx] += w
+
+    used_weight_mean = np.divide(
+        used_weight_sum, used_count,
+        out=np.zeros_like(used_weight_sum),
+        where=used_count > 0
+    )
+
+    cell_types = adata_sc.obs['Level1'].values if 'Level1' in adata_sc.obs.columns else np.array(['NA'] * n_cells)
+    df_stat = pd.DataFrame({
+        'cell_type': cell_types,
+        'used_count': used_count,
+        'used_weight_sum': used_weight_sum,
+        'used_weight_mean': used_weight_mean,
+    }, index=adata_sc.obs_names)
+
+    adata_imputed = sc.AnnData(
+        X=imputed,
+        obs=adata_sp.obs.copy(),
+        var=pd.DataFrame(index=pd.Index(genes_to_predict))
+    )
+    adata_imputed.var_names = pd.Index(genes_to_predict)
+
+    return adata_imputed, df_stat
+
+
 def _get_impute_NearestNeighbors(
-    adata_sp: sc.AnnData,
-    adata_sc: sc.AnnData,
-    genes_to_predict: list = None,
-    n_neighbors: int = 50
-) -> tuple[sc.AnnData, pd.DataFrame]:
+    adata_sp,
+    adata_sc,
+    genes_to_predict=None,
+    n_neighbors=50
+):
     if "X_shared" not in adata_sp.obsm or "X_shared" not in adata_sc.obsm:
         if "X_shared_sc" in adata_sp.obsm and "X_shared_sc" in adata_sc.obsm:
             adata_sp.obsm["X_shared"] = adata_sp.obsm["X_shared_sc"]
@@ -284,7 +399,7 @@ def _get_impute_MNN(
     genes_to_predict: list = None,
     n_neighbors: int = 50,
     fallback_k: int = 5  # 新增参数，默认5
-) -> tuple[sc.AnnData, pd.DataFrame]:
+):
     if "X_shared" not in adata_sp.obsm or "X_shared" not in adata_sc.obsm:
         if "X_shared_sc" in adata_sp.obsm and "X_shared_sc" in adata_sc.obsm:
             adata_sp.obsm["X_shared"] = adata_sp.obsm["X_shared_sc"]

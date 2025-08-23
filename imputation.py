@@ -1,5 +1,6 @@
 import scanpy as sc
 from imputation.impute import get_common_embedding, get_imputed_adata, get_harmony_embedding
+import os
 
 # test_gene_idx=340
 test_gene_idx = None # all train 
@@ -12,7 +13,11 @@ task = "imputation"
 patient_id = "P2CRC"
 
 
-source_path = f"data/{task}/{patient_id}/cut_part{part_num}"
+# source_path = f"data/{task}/{patient_id}/cut_part{part_num}"
+# adata_sp = sc.read(f"{source_path}/selected_xenium.h5ad")
+# adata_sc = sc.read(f"{source_path}/real_sc_ref.h5ad")
+root_path = "/cpfs01/projects-HDD/cfff-c7cd658afc74_HDD/public/wuyushuai/REVISE_new/data/spot"
+source_path = os.path.join(root_path, patient_id, f"cut_part{part_num}")
 adata_sp = sc.read(f"{source_path}/selected_xenium.h5ad")
 adata_sc = sc.read(f"{source_path}/real_sc_ref.h5ad")
 

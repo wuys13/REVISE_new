@@ -1775,7 +1775,11 @@ def two_step_REVISE(X, adata_sc, sc_ref, type_list, key_type,
 
 
 import tacco as tc
-def tacco_get(adata_st, adata_sc):
+def tacco_get(adata_st, adata_sc, **kwargs):
+    adata_st = adata_st.copy()
     adata_st.X = np.around(adata_st.X)
-    a = tc.tl.annotate(adata_st, adata_sc, 'Level1')
-    return a 
+    if "annotation_key" in kwargs:
+        a = tc.tl.annotate(adata_st, adata_sc, **kwargs)
+    else:
+        a = tc.tl.annotate(adata_st, adata_sc, annotation_key="Level1",**kwargs)
+    return a
