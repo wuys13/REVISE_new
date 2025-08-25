@@ -1,7 +1,6 @@
 from revise.base_svc import BaseSVC
 from revise.tacco import tacco_anno
 from revise.graph_smooth import get_spatial_graph
-from revise.graph_smooth import get_expression_graph
 from revise.graph_smooth import laplacian_smooth_expression
 import scanpy as sc
 from tqdm import tqdm
@@ -26,10 +25,17 @@ class SpSVC(BaseSVC):
             adata_tmp = get_spatial_graph(adata_tmp, n_neighbors=self.config.graph_n_neighbors,
                                           use_cell_size=self.config.use_cell_size, bandwidth=bandwidth)
             # adata_tmp = get_expression_graph(adata_tmp, n_pca=self.config.graph_n_pca, n_neighbors=self.config.graph_n_neighbors)
-            print(f"cell type: {cell_type}, n_spots: {adata_tmp.n_obs}, connectivites: {adata_tmp.obsp['spatial_connectivities'].shape}")
+            print(f"cell type: {cell_type}, n_spots: {adata_tmp.n_obs}, "
+                  f"connectivites: {adata_tmp.obsp['spatial_connectivities'].shape}")
             for _ in range(self.config.iter_num):
-                adata_tmp = laplacian_smooth_expression(adata_tmp, alpha=self.config.graph_st_alpha,
-                                                        obsp_key='spatial_connectivities')
+                if 'lap_smooth' in adata_tmp.layers: # already has lap_smooth layer
+                    adata_for_lap = sc.AnnData(X=adata_tmp.layers['lap_smooth'].copy(), obsp=adata_tmp.obsp.copy())
+                    adata_for_lap = laplacian_smooth_expression(adata_for_lap, alpha=self.config.graph_st_alpha,
+                                                                obsp_key='spatial_connectivities')
+                    adata_tmp.layers['lap_smooth'] = adata_for_lap.X.copy()
+                else: # first iteration
+                    adata_tmp = laplacian_smooth_expression(adata_tmp, alpha=self.config.graph_st_alpha,
+                                                            obsp_key='spatial_connectivities')
             adata_by_cell_type.append(adata_tmp)
         self.st_adata = sc.concat(adata_by_cell_type)
 

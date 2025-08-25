@@ -87,7 +87,6 @@ def get_spatial_graph(
         raise ValueError("weight_mode have to be in ('gaussian', 'inverse', 'linear')")
 
     # remove self-loops by setting self-weights to 0
-    import pdb; pdb.set_trace()
     self_mask = (indices == np.arange(n)[:, None])
     weights = np.where(self_mask, 0.0, weights)
 
@@ -156,12 +155,10 @@ def laplacian_smooth_expression(adata, obsp_key='connectivities', layer_key='lap
     # D^{-1} A, D_ii = sum_j A_ij
     deg = np.asarray(A.sum(axis=1)).ravel()
 
-
     inv_deg = np.empty_like(deg)
     mask = deg != 0
     inv_deg[mask] = 1.0 / deg[mask]
     inv_deg[~mask] = 1.0
-    import pdb; pdb.set_trace()
 
     # D^{-1}A
     DinvA = A.multiply(inv_deg[:, None])
