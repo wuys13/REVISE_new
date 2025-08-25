@@ -1,8 +1,9 @@
 import scanpy as sc
 import numpy as np
+from ipykernel.pickleutil import cell_type
 from sklearn.neighbors import NearestNeighbors
-from sklearn.neighbors import KDTree
 from scipy import sparse
+from sklearn.neighbors import KDTree
 
 
 def get_expression_graph(adata, n_pca=30, n_neighbors=15):
@@ -58,12 +59,14 @@ def get_spatial_graph(
     coords = adata.obsm['spatial'].copy()
     n = adata.n_obs
 
-    if use_cell_size and sc_pixel:
-        kdtree = KDTree(coords)
-        neighbors = kdtree.query_ball_point(coords, sc_pixel)
+    # if use_cell_size and sc_pixel:
+    #     sc_pixel *= n_neighbors
+    #     print(f"use cell size to determine neighbors, sc_pixel: {sc_pixel}")
+    #     kdtree = KDTree(coords)
+    #     indices, distances = kdtree.query_radius(coords, r=sc_pixel, return_distance=True)
+    # else:
     nbrs = NearestNeighbors(n_neighbors=n_neighbors, metric='euclidean').fit(coords)
     distances, indices = nbrs.kneighbors(coords)  # shape: (n, k)
-
     if weight_mode == "gaussian":
         # calculate bandwidth if not provided
         if bandwidth is None:
@@ -84,6 +87,7 @@ def get_spatial_graph(
         raise ValueError("weight_mode have to be in ('gaussian', 'inverse', 'linear')")
 
     # remove self-loops by setting self-weights to 0
+    import pdb; pdb.set_trace()
     self_mask = (indices == np.arange(n)[:, None])
     weights = np.where(self_mask, 0.0, weights)
 
@@ -115,6 +119,8 @@ def get_spatial_graph(
     # row normalize
     if row_normalize:
         row_sum = np.asarray(adj_sym.sum(axis=1)).ravel()
+        # to avoid division by tiny numbers
+        row_sum = np.where(row_sum < 1e-8, 0.0, row_sum)
         row_sum[row_sum == 0] = 1.0
         D_inv = sparse.diags(1.0 / row_sum)
         adj_out = D_inv @ adj_sym
@@ -150,14 +156,16 @@ def laplacian_smooth_expression(adata, obsp_key='connectivities', layer_key='lap
     # D^{-1} A, D_ii = sum_j A_ij
     deg = np.asarray(A.sum(axis=1)).ravel()
 
+
     inv_deg = np.empty_like(deg)
     mask = deg != 0
     inv_deg[mask] = 1.0 / deg[mask]
     inv_deg[~mask] = 1.0
+    import pdb; pdb.set_trace()
 
     # D^{-1}A
-    DinvA = A.multiply(inv_deg[:, None])  # 仍为 CSR
-
+    DinvA = A.multiply(inv_deg[:, None])
+    print('-'*10, np.isnan(DinvA.toarray()).sum(), np.isnan(Xs.toarray()).sum())
     AX = DinvA @ Xs
     X_smooth = (1.0 - alpha) * Xs + alpha * AX
 

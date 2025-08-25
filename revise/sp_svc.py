@@ -17,10 +17,14 @@ class SpSVC(BaseSVC):
 
     def reconstruct(self, *args, **kwargs):
         # Implement the reconstruction logic here
+        # TODO: 1)表达相似性的图,2)距离KNN
         adata_by_cell_type = []
         for cell_type in tqdm(self.st_adata.obs['max_type'].unique().tolist()):
             adata_tmp = self.st_adata[self.st_adata.obs['max_type'] == cell_type]
-            adata_tmp = get_spatial_graph(adata_tmp, n_neighbors=self.config.graph_n_neighbors)
+            sc_pixel = self.config.single_cell_size / self.config.pixel_size
+            bandwidth = sc_pixel * self.config.bandwidth_temp
+            adata_tmp = get_spatial_graph(adata_tmp, n_neighbors=self.config.graph_n_neighbors,
+                                          use_cell_size=self.config.use_cell_size, bandwidth=bandwidth)
             # adata_tmp = get_expression_graph(adata_tmp, n_pca=self.config.graph_n_pca, n_neighbors=self.config.graph_n_neighbors)
             print(f"cell type: {cell_type}, n_spots: {adata_tmp.n_obs}, connectivites: {adata_tmp.obsp['spatial_connectivities'].shape}")
             for _ in range(self.config.iter_num):
